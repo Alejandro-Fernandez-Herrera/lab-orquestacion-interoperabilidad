@@ -1,0 +1,55 @@
+
+services:
+  mystore_frontend:
+    build:
+      context: ./mystore_frontend
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      - mystore_ms
+    ports:
+      - "8085:80"
+
+  mystore_ms:
+    build:
+      context: ./bigstore_ms
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      bigstoredb:
+        condition: service_healthy  # Espera a que MySQL esté listo
+    environment:
+      DB_HOST: ${MYSQL_HOST}
+      DB_PORT: ${MYSQL_PORT}
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE}
+      URL: ${URL}
+    ports:
+      - "4000:4000"
+
+  bigstoredb:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s  
+      retries: 5     
+      start_period: 10s 
+
+  adminer:
+    image: adminer:4.8.1
+    restart: always
+    ports:
+      - "8080:8080"
+
+volumes:
+  mysql-data:
